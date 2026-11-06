@@ -8,9 +8,9 @@
 #   component's version; pre-releases (`1.2.0-rc.1`) get only their own tag.
 #
 # Images go to Docker Hub as sarhanalaa/cookiejar-<component> (the variable
-# DOCKERHUB_NAMESPACE overrides the namespace), which needs the secrets
-# DOCKERHUB_USERNAME and DOCKERHUB_TOKEN (an access token with read/write scope)
-# in the `production` environment.
+# DOCKERHUB_NAMESPACE overrides the namespace). That needs, in the `production`
+# environment, the variable DOCKERHUB_USERNAME and the secret DOCKERHUB_TOKEN
+# (an access token with read/write scope).
 # They are mirrored to ghcr.io/<owner>/cookiejar-<component>.
 name: Docker
 
@@ -75,7 +75,7 @@ jobs:
       - name: Check Docker Hub credentials
         if: env.RELEASE == 'true' && env.DOCKERHUB_CONFIGURED != 'true'
         run: |
-          echo "::error::Releases are published to Docker Hub; set the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets"
+          echo "::error::Releases are published to Docker Hub; set the DOCKERHUB_TOKEN secret and DOCKERHUB_USERNAME variable"
           exit 1
 
       - id: target
@@ -90,7 +90,7 @@ jobs:
         if: steps.target.outputs.dockerhub == 'true'
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log in to GitHub Container Registry
@@ -152,7 +152,7 @@ jobs:
         if: steps.target.outputs.dockerhub == 'true' && env.RELEASE == 'true'
         uses: peter-evans/dockerhub-description@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ env.DOCKERHUB_NAMESPACE }}/cookiejar-${{ matrix.component }}
           short-description: ${{ github.event.repository.description }}
