@@ -84,7 +84,7 @@ jobs:
           echo "ghcr=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/cookiejar-${{ matrix.component }}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Log in to Docker Hub
         if: steps.target.outputs.dockerhub == 'true'
