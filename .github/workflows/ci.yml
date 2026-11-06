@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.component }} (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [scanner, consent, receiver]
+        ruby: ["3.2", "4.0"]
+    defaults:
+      run:
+        working-directory: ${{ matrix.component }}
+    env:
+      # Chromium's sandbox needs user namespaces that Ubuntu runners restrict;
+      # this makes Ferrum start the browser with --no-sandbox.
+      FERRUM_CHROME_DOCKERIZE: "true"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          working-directory: ${{ matrix.component }}
+          bundler-cache: true
+      - name: Set up Chrome
+        if: matrix.component != 'receiver'
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
+      - name: Run specs
+        run: bundle exec rspec
+        env:
+          BROWSER_PATH: ${{ steps.chrome.outputs.chrome-path }}

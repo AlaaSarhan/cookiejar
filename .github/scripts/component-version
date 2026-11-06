@@ -1,0 +1,11 @@
+#!/bin/sh
+# Prints the version of a component: scanner, consent or receiver.
+# Release tags are <component>-v<version>, and must match this version.
+set -eu
+case "$1" in
+  scanner) file=scanner/lib/cookiejar/version.rb ;;
+  consent) file=consent/lib/cookiejar_consent/version.rb ;;
+  receiver) file=receiver/lib/consent_log.rb ;;
+  *) echo "unknown component: $1" >&2; exit 2 ;;
+esac
+sed -n 's/^ *VERSION = "\(.*\)"$/\1/p' "$file"

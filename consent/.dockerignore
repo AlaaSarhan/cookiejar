@@ -1,0 +1,10 @@
+.git/
+.bundle/
+.rspec_status
+vendor/
+pkg/
+cookie-report/
+spec/
+Dockerfile
+.dockerignore
+package.json

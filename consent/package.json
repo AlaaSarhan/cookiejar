@@ -1,0 +1,32 @@
+{
+  "name": "cookiejar-consent",
+  "version": "0.1.0",
+  "description": "Cookie consent banner with Google Consent Mode v2, built for cookiejar scan reports. No dependencies.",
+  "license": "MIT",
+  "author": "Alaa Sarhan",
+  "homepage": "https://github.com/AlaaSarhan/cookiejar/tree/main/consent#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlaaSarhan/cookiejar.git",
+    "directory": "consent"
+  },
+  "bugs": "https://github.com/AlaaSarhan/cookiejar/issues",
+  "keywords": [
+    "cookie",
+    "cookies",
+    "consent",
+    "cookie-banner",
+    "cookie-consent",
+    "gdpr",
+    "consent-mode",
+    "google-consent-mode"
+  ],
+  "main": "assets/cookiejar-consent.js",
+  "browser": "assets/cookiejar-consent.js",
+  "jsdelivr": "assets/cookiejar-consent.js",
+  "unpkg": "assets/cookiejar-consent.js",
+  "files": [
+    "assets/cookiejar-consent.js"
+  ],
+  "sideEffects": true
+}

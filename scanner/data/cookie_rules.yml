@@ -1,0 +1,230 @@
+# Built-in cookie classification knowledge base.
+#
+# cookies:  matched against the cookie name. `name` supports the wildcard `*`.
+#           Optional `domains` restricts a rule to cookies set on those domains
+#           (or their subdomains), for names that are too generic on their own.
+# domains:  fallback evidence based on the domain a cookie is set on.
+# keywords: fallback evidence based on regular expressions over the cookie name.
+#
+# Fallback evidence (domains + keywords) for the same category is combined, so
+# two weak signals can together exceed the confidence threshold.
+
+cookies:
+  # --- Functionality: sessions, security, load balancing ------------------------
+  - { name: PHPSESSID, category: functionality, provider: PHP, confidence: 0.95, description: "Keeps the user's PHP session across page requests." }
+  - { name: JSESSIONID, category: functionality, provider: Java servlet container, confidence: 0.95, description: "Keeps the user's Java application server session across page requests." }
+  - { name: ASP.NET_SessionId, category: functionality, provider: ASP.NET, confidence: 0.95, description: "Keeps the user's ASP.NET session across page requests." }
+  - { name: "ASPSESSIONID*", category: functionality, provider: Classic ASP, confidence: 0.95, description: "Keeps the user's ASP session across page requests." }
+  - { name: ".AspNetCore.*", category: functionality, provider: ASP.NET Core, confidence: 0.9, description: "ASP.NET Core session, authentication or anti-forgery state." }
+  - { name: connect.sid, category: functionality, provider: Express (Node.js), confidence: 0.95, description: "Keeps the user's Express session across page requests." }
+  - { name: laravel_session, category: functionality, provider: Laravel, confidence: 0.95, description: "Keeps the user's Laravel session across page requests." }
+  - { name: sessionid, category: functionality, provider: Django, confidence: 0.9, description: "Keeps the user's session across page requests." }
+  - { name: csrftoken, category: functionality, provider: Django, confidence: 0.95, description: "Protects forms against cross-site request forgery." }
+  - { name: XSRF-TOKEN, category: functionality, confidence: 0.95, description: "Protects requests against cross-site request forgery." }
+  - { name: _csrf, category: functionality, confidence: 0.95, description: "Protects requests against cross-site request forgery." }
+  - { name: CFID, category: functionality, provider: ColdFusion, confidence: 0.9, description: "Identifies the user's ColdFusion session." }
+  - { name: CFTOKEN, category: functionality, provider: ColdFusion, confidence: 0.9, description: "Identifies the user's ColdFusion session." }
+  - { name: AWSALB, category: functionality, provider: AWS Elastic Load Balancing, confidence: 0.95, description: "Routes the user's requests to the same server (load balancer stickiness)." }
+  - { name: AWSALBCORS, category: functionality, provider: AWS Elastic Load Balancing, confidence: 0.95, description: "Routes the user's cross-origin requests to the same server (load balancer stickiness)." }
+  - { name: AWSELB, category: functionality, provider: AWS Elastic Load Balancing, confidence: 0.95, description: "Routes the user's requests to the same server (load balancer stickiness)." }
+  - { name: "BIGipServer*", category: functionality, provider: F5 BIG-IP, confidence: 0.95, description: "Routes the user's requests to the same server (load balancer stickiness)." }
+  - { name: SERVERID, category: functionality, confidence: 0.85, description: "Routes the user's requests to the same server (load balancer stickiness)." }
+  - { name: __cf_bm, category: functionality, provider: Cloudflare, confidence: 0.95, description: "Cloudflare Bot Management: distinguishes humans from bots." }
+  - { name: cf_clearance, category: functionality, provider: Cloudflare, confidence: 0.95, description: "Stores proof that the user passed a Cloudflare security challenge." }
+  - { name: _cfuvid, category: functionality, provider: Cloudflare, confidence: 0.95, description: "Cloudflare rate limiting: distinguishes users sharing an IP address." }
+  - { name: __cflb, category: functionality, provider: Cloudflare, confidence: 0.95, description: "Cloudflare load balancer session affinity." }
+  - { name: _abck, category: functionality, provider: Akamai, confidence: 0.9, description: "Akamai Bot Manager: detects and blocks malicious bots." }
+  - { name: ak_bmsc, category: functionality, provider: Akamai, confidence: 0.9, description: "Akamai Bot Manager: detects and blocks malicious bots." }
+  - { name: bm_sz, category: functionality, provider: Akamai, confidence: 0.9, description: "Akamai Bot Manager: detects and blocks malicious bots." }
+  - { name: bm_sv, category: functionality, provider: Akamai, confidence: 0.9, description: "Akamai Bot Manager: detects and blocks malicious bots." }
+  - { name: bm_mi, category: functionality, provider: Akamai, confidence: 0.9, description: "Akamai Bot Manager: detects and blocks malicious bots." }
+  - { name: "visid_incap_*", category: functionality, provider: Imperva Incapsula, confidence: 0.9, description: "Imperva web application firewall: identifies sessions for DDoS and bot protection." }
+  - { name: "incap_ses_*", category: functionality, provider: Imperva Incapsula, confidence: 0.9, description: "Imperva web application firewall: identifies sessions for DDoS and bot protection." }
+  - { name: "nlbi_*", category: functionality, provider: Imperva Incapsula, confidence: 0.9, description: "Imperva load balancer session affinity." }
+  - { name: _GRECAPTCHA, category: functionality, provider: Google reCAPTCHA, confidence: 0.95, description: "Google reCAPTCHA risk analysis to protect forms against spam and abuse." }
+  - { name: __stripe_mid, category: functionality, provider: Stripe, confidence: 0.95, description: "Stripe fraud prevention for payments." }
+  - { name: __stripe_sid, category: functionality, provider: Stripe, confidence: 0.95, description: "Stripe fraud prevention for payments." }
+
+  # --- Functionality: consent management platforms -----------------------------
+  - { name: OptanonConsent, category: functionality, provider: OneTrust, confidence: 0.95, description: "Stores the user's cookie consent choices." }
+  - { name: OptanonAlertBoxClosed, category: functionality, provider: OneTrust, confidence: 0.95, description: "Records that the cookie consent banner was dismissed." }
+  - { name: CookieConsent, category: functionality, provider: Cookiebot, confidence: 0.95, description: "Stores the user's cookie consent choices." }
+  - { name: CookieConsentBulkSetting-*, category: functionality, provider: Cookiebot, confidence: 0.95, description: "Stores the user's cross-domain cookie consent choices." }
+  - { name: euconsent-v2, category: functionality, provider: IAB TCF, confidence: 0.95, description: "Stores the user's IAB Transparency & Consent Framework consent string." }
+  - { name: euconsent, category: functionality, provider: IAB TCF, confidence: 0.95, description: "Stores the user's IAB Transparency & Consent Framework consent string." }
+  - { name: cookieyes-consent, category: functionality, provider: CookieYes, confidence: 0.95, description: "Stores the user's cookie consent choices." }
+  - { name: borlabs-cookie, category: functionality, provider: Borlabs Cookie, confidence: 0.95, description: "Stores the user's cookie consent choices." }
+  - { name: "cmplz_*", category: functionality, provider: Complianz, confidence: 0.95, description: "Stores the user's cookie consent choices." }
+  - { name: didomi_token, category: functionality, provider: Didomi, confidence: 0.95, description: "Stores the user's cookie consent choices." }
+  - { name: "uc_*", category: functionality, provider: Usercentrics, confidence: 0.85, description: "Stores the user's cookie consent choices." }
+  - { name: klaro, category: functionality, provider: Klaro, confidence: 0.95, description: "Stores the user's cookie consent choices." }
+  - { name: cookielawinfo-*, category: functionality, provider: GDPR Cookie Consent (WordPress), confidence: 0.95, description: "Stores the user's cookie consent choices." }
+  - { name: viewed_cookie_policy, category: functionality, provider: GDPR Cookie Consent (WordPress), confidence: 0.95, description: "Records whether the user accepted the cookie policy." }
+  - { name: li_gc, category: functionality, provider: LinkedIn, confidence: 0.9, description: "Stores the user's consent to LinkedIn's use of non-essential cookies." }
+
+  # --- Functionality: platforms and widgets ------------------------------------
+  - { name: "wordpress_logged_in_*", category: functionality, provider: WordPress, confidence: 0.95, description: "Indicates that the user is logged in to WordPress." }
+  - { name: "wordpress_sec_*", category: functionality, provider: WordPress, confidence: 0.95, description: "Stores WordPress authentication details." }
+  - { name: wordpress_test_cookie, category: functionality, provider: WordPress, confidence: 0.95, description: "Checks whether the browser accepts cookies." }
+  - { name: "wp-settings-*", category: functionality, provider: WordPress, confidence: 0.95, description: "Stores WordPress admin interface preferences." }
+  - { name: "wp_woocommerce_session_*", category: functionality, provider: WooCommerce, confidence: 0.95, description: "Keeps the shopping cart for the user's session." }
+  - { name: woocommerce_cart_hash, category: functionality, provider: WooCommerce, confidence: 0.95, description: "Tracks changes to the shopping cart." }
+  - { name: woocommerce_items_in_cart, category: functionality, provider: WooCommerce, confidence: 0.95, description: "Tracks whether the shopping cart has items." }
+  - { name: cart, category: functionality, provider: Shopify, confidence: 0.85, description: "Stores the contents of the shopping cart." }
+  - { name: cart_currency, category: functionality, provider: Shopify, confidence: 0.9, description: "Stores the currency used by the shopping cart." }
+  - { name: localization, category: functionality, provider: Shopify, confidence: 0.85, description: "Stores the shop's localisation (country and language)." }
+  - { name: _secure_session_id, category: functionality, provider: Shopify, confidence: 0.95, description: "Keeps the user's Shopify checkout session." }
+  - { name: secure_customer_sig, category: functionality, provider: Shopify, confidence: 0.95, description: "Identifies a logged-in Shopify customer." }
+  - { name: _shopify_y, category: performance, provider: Shopify, confidence: 0.9, description: "Shopify analytics: identifies returning visitors." }
+  - { name: _shopify_s, category: performance, provider: Shopify, confidence: 0.9, description: "Shopify analytics: identifies the visit." }
+  - { name: _shopify_sa_t, category: marketing, provider: Shopify, confidence: 0.85, description: "Shopify marketing attribution: time of the visit's referral." }
+  - { name: _shopify_sa_p, category: marketing, provider: Shopify, confidence: 0.85, description: "Shopify marketing attribution: referring campaign." }
+  - { name: "intercom-id-*", category: functionality, provider: Intercom, confidence: 0.9, description: "Identifies the visitor for the Intercom support chat." }
+  - { name: "intercom-session-*", category: functionality, provider: Intercom, confidence: 0.9, description: "Keeps the Intercom support chat session." }
+  - { name: "intercom-device-id-*", category: functionality, provider: Intercom, confidence: 0.9, description: "Identifies the device for the Intercom support chat." }
+  - { name: __zlcmid, category: functionality, provider: Zendesk Chat, confidence: 0.9, description: "Identifies the visitor for the Zendesk live chat." }
+
+  # --- Performance: analytics, monitoring, experimentation ---------------------
+  - { name: _ga, category: performance, provider: Google Analytics, confidence: 0.95, description: "Google Analytics: distinguishes unique visitors." }
+  - { name: "_ga_*", category: performance, provider: Google Analytics, confidence: 0.95, description: "Google Analytics 4: persists the session state." }
+  - { name: _gid, category: performance, provider: Google Analytics, confidence: 0.95, description: "Google Analytics: distinguishes visitors over 24 hours." }
+  - { name: _gat, category: performance, provider: Google Analytics, confidence: 0.95, description: "Google Analytics: throttles the request rate." }
+  - { name: "_gat_*", category: performance, provider: Google Analytics, confidence: 0.95, description: "Google Analytics: throttles the request rate." }
+  - { name: "_dc_gtm_*", category: performance, provider: Google Tag Manager, confidence: 0.9, description: "Google Analytics via Tag Manager: throttles the request rate." }
+  - { name: "__utm?", category: performance, provider: Google Analytics (Universal), confidence: 0.95, description: "Legacy Google Analytics: tracks visitors and sessions." }
+  - { name: _gaexp, category: performance, provider: Google Optimize, confidence: 0.95, description: "Google Optimize: records which A/B test variant the user sees." }
+  - { name: "_pk_id.*", category: performance, provider: Matomo, confidence: 0.95, description: "Matomo analytics: distinguishes unique visitors." }
+  - { name: "_pk_ses.*", category: performance, provider: Matomo, confidence: 0.95, description: "Matomo analytics: identifies the current visit." }
+  - { name: "_pk_ref.*", category: performance, provider: Matomo, confidence: 0.95, description: "Matomo analytics: stores the referrer of the visit." }
+  - { name: MATOMO_SESSID, category: performance, provider: Matomo, confidence: 0.85, description: "Matomo analytics session." }
+  - { name: "_hjSessionUser_*", category: performance, provider: Hotjar, confidence: 0.95, description: "Hotjar: identifies the user across sessions for behaviour analytics." }
+  - { name: "_hjSession_*", category: performance, provider: Hotjar, confidence: 0.95, description: "Hotjar: holds the current session data for behaviour analytics." }
+  - { name: "_hj*", category: performance, provider: Hotjar, confidence: 0.9, description: "Hotjar behaviour analytics and feedback." }
+  - { name: _clck, category: performance, provider: Microsoft Clarity, confidence: 0.95, description: "Microsoft Clarity: identifies the user for session recording and heatmaps." }
+  - { name: _clsk, category: performance, provider: Microsoft Clarity, confidence: 0.95, description: "Microsoft Clarity: connects page views into a single session recording." }
+  - { name: CLID, category: performance, provider: Microsoft Clarity, confidence: 0.85, domains: [clarity.ms], description: "Microsoft Clarity: identifies the user across sites using Clarity." }
+  - { name: "mp_*_mixpanel", category: performance, provider: Mixpanel, confidence: 0.95, description: "Mixpanel product analytics: identifies the user and stores properties." }
+  - { name: "AMP_*", category: performance, provider: Amplitude, confidence: 0.9, description: "Amplitude product analytics: identifies the user and session." }
+  - { name: ajs_anonymous_id, category: performance, provider: Segment, confidence: 0.9, description: "Segment analytics: identifies anonymous visitors." }
+  - { name: ajs_user_id, category: performance, provider: Segment, confidence: 0.9, description: "Segment analytics: identifies logged-in users." }
+  - { name: _ym_uid, category: performance, provider: Yandex Metrica, confidence: 0.95, description: "Yandex Metrica: identifies unique visitors." }
+  - { name: _ym_d, category: performance, provider: Yandex Metrica, confidence: 0.95, description: "Yandex Metrica: stores the date of the first visit." }
+  - { name: _dd_s, category: performance, provider: Datadog RUM, confidence: 0.95, description: "Datadog Real User Monitoring: groups events of the session for performance and error monitoring." }
+  - { name: NREUM, category: performance, provider: New Relic, confidence: 0.9, description: "New Relic: measures page load performance." }
+  - { name: NRAGENT, category: performance, provider: New Relic, confidence: 0.9, description: "New Relic: measures application performance." }
+  - { name: "optimizely*", category: performance, provider: Optimizely, confidence: 0.9, description: "Optimizely: assigns the user to A/B test variants." }
+  - { name: "_vwo*", category: performance, provider: VWO, confidence: 0.9, description: "VWO: assigns the user to A/B test variants." }
+  - { name: "_vis_opt_*", category: performance, provider: VWO, confidence: 0.9, description: "VWO: tracks A/B test participation." }
+  - { name: mbox, category: performance, provider: Adobe Target, confidence: 0.9, description: "Adobe Target: assigns the user to tests and personalisation experiences." }
+  - { name: s_cc, category: performance, provider: Adobe Analytics, confidence: 0.9, description: "Adobe Analytics: checks whether cookies are enabled." }
+  - { name: s_sq, category: performance, provider: Adobe Analytics, confidence: 0.9, description: "Adobe Analytics: stores information about the previously clicked link." }
+  - { name: s_vi, category: performance, provider: Adobe Analytics, confidence: 0.9, description: "Adobe Analytics: identifies unique visitors." }
+  - { name: s_fid, category: performance, provider: Adobe Analytics, confidence: 0.9, description: "Adobe Analytics: fallback visitor identifier." }
+  - { name: "AMCV_*", category: performance, provider: Adobe Experience Cloud, confidence: 0.85, description: "Adobe Experience Cloud visitor identifier." }
+  - { name: "AMCVS_*", category: performance, provider: Adobe Experience Cloud, confidence: 0.85, description: "Adobe Experience Cloud: marks the visitor session." }
+
+  # --- Marketing: advertising and social platforms -----------------------------
+  - { name: _gcl_au, category: marketing, provider: Google Ads, confidence: 0.95, description: "Google AdSense / Ads: stores conversion data for ad efficiency." }
+  - { name: "_gcl_*", category: marketing, provider: Google Ads, confidence: 0.95, description: "Google Ads: stores ad click information for conversion tracking." }
+  - { name: "_gac_*", category: marketing, provider: Google Ads, confidence: 0.95, description: "Google Ads: stores campaign information for conversion tracking." }
+  - { name: IDE, category: marketing, provider: Google DoubleClick, confidence: 0.95, domains: [doubleclick.net], description: "Google DoubleClick: registers user actions after viewing or clicking an ad to measure efficacy and show targeted ads." }
+  - { name: DSID, category: marketing, provider: Google DoubleClick, confidence: 0.95, domains: [doubleclick.net], description: "Google DoubleClick: links activity across devices for ad personalisation." }
+  - { name: test_cookie, category: marketing, provider: Google DoubleClick, confidence: 0.95, domains: [doubleclick.net], description: "Google DoubleClick: checks whether the browser supports cookies." }
+  - { name: NID, category: marketing, provider: Google, confidence: 0.9, domains: [google.com], description: "Google: stores preferences and information used to personalise ads." }
+  - { name: AEC, category: functionality, provider: Google, confidence: 0.85, domains: [google.com], description: "Google: ensures requests in a session are made by the user, preventing malicious sites from acting on their behalf." }
+  - { name: "__Secure-*PSID*", category: marketing, provider: Google, confidence: 0.85, domains: [google.com], description: "Google: builds a profile of the user's interests to show relevant ads." }
+  - { name: "__Secure-*PAPISID", category: marketing, provider: Google, confidence: 0.85, domains: [google.com], description: "Google: builds a profile of the user's interests to show relevant ads." }
+  - { name: VISITOR_INFO1_LIVE, category: marketing, provider: YouTube, confidence: 0.9, description: "YouTube: estimates bandwidth and tracks embedded video views for recommendations." }
+  - { name: VISITOR_PRIVACY_METADATA, category: marketing, provider: YouTube, confidence: 0.85, description: "YouTube: stores the user's consent state for embedded videos." }
+  - { name: YSC, category: marketing, provider: YouTube, confidence: 0.9, domains: [youtube.com], description: "YouTube: tracks views of embedded videos." }
+  - { name: _fbp, category: marketing, provider: Meta (Facebook), confidence: 0.95, description: "Meta Pixel: identifies browsers to deliver and measure advertising." }
+  - { name: _fbc, category: marketing, provider: Meta (Facebook), confidence: 0.95, description: "Meta Pixel: stores the last ad click identifier." }
+  - { name: fr, category: marketing, provider: Meta (Facebook), confidence: 0.95, domains: [facebook.com], description: "Meta: delivers, measures and improves the relevance of ads." }
+  - { name: _uetsid, category: marketing, provider: Microsoft Advertising, confidence: 0.95, description: "Microsoft Advertising UET: tracks the session for conversion measurement." }
+  - { name: _uetvid, category: marketing, provider: Microsoft Advertising, confidence: 0.95, description: "Microsoft Advertising UET: identifies the visitor for conversion measurement." }
+  - { name: MUID, category: marketing, provider: Microsoft, confidence: 0.9, description: "Microsoft: identifies unique browsers across Microsoft sites for advertising." }
+  - { name: bcookie, category: marketing, provider: LinkedIn, confidence: 0.9, domains: [linkedin.com], description: "LinkedIn: browser identifier used for embedded services and ads." }
+  - { name: lidc, category: marketing, provider: LinkedIn, confidence: 0.85, domains: [linkedin.com], description: "LinkedIn: routing and data centre selection for embedded services." }
+  - { name: li_sugr, category: marketing, provider: LinkedIn, confidence: 0.95, description: "LinkedIn Insight Tag: probabilistic identifier for ad measurement." }
+  - { name: UserMatchHistory, category: marketing, provider: LinkedIn, confidence: 0.95, description: "LinkedIn Ads: syncs the ad identifier with partners." }
+  - { name: AnalyticsSyncHistory, category: marketing, provider: LinkedIn, confidence: 0.95, description: "LinkedIn Ads: stores the time of the last identifier sync." }
+  - { name: _ttp, category: marketing, provider: TikTok, confidence: 0.95, description: "TikTok Pixel: measures and improves ad performance." }
+  - { name: _tt_enable_cookie, category: marketing, provider: TikTok, confidence: 0.95, description: "TikTok Pixel: checks whether cookies are enabled." }
+  - { name: personalization_id, category: marketing, provider: X (Twitter), confidence: 0.9, description: "X: tracks activity across sites for ad personalisation." }
+  - { name: guest_id, category: marketing, provider: X (Twitter), confidence: 0.85, domains: [twitter.com, x.com], description: "X: identifies the visitor for embedded content and ads." }
+  - { name: muc_ads, category: marketing, provider: X (Twitter), confidence: 0.95, description: "X: advertising identifier." }
+  - { name: _pinterest_ct_ua, category: marketing, provider: Pinterest, confidence: 0.95, description: "Pinterest Tag: tracks conversions from Pinterest ads." }
+  - { name: _pin_unauth, category: marketing, provider: Pinterest, confidence: 0.95, description: "Pinterest Tag: groups actions of users who cannot be identified by Pinterest." }
+  - { name: _scid, category: marketing, provider: Snapchat, confidence: 0.95, description: "Snap Pixel: identifies the visitor for ad measurement." }
+  - { name: _rdt_uuid, category: marketing, provider: Reddit, confidence: 0.95, description: "Reddit Pixel: identifies the visitor for ad measurement." }
+  - { name: __qca, category: marketing, provider: Quantcast, confidence: 0.95, description: "Quantcast: audience measurement and ad targeting." }
+  - { name: cto_bundle, category: marketing, provider: Criteo, confidence: 0.95, description: "Criteo: retargeting identifier." }
+  - { name: cto_bidid, category: marketing, provider: Criteo, confidence: 0.95, description: "Criteo: identifier used for ad bidding." }
+  - { name: t_gid, category: marketing, provider: Taboola, confidence: 0.9, description: "Taboola: identifier for content recommendations and ads." }
+  - { name: obuid, category: marketing, provider: Outbrain, confidence: 0.9, description: "Outbrain: identifier for content recommendations and ads." }
+  - { name: demdex, category: marketing, provider: Adobe Audience Manager, confidence: 0.95, description: "Adobe Audience Manager: identifies the visitor for audience segmentation." }
+  - { name: __hstc, category: marketing, provider: HubSpot, confidence: 0.9, description: "HubSpot: tracks visitors for marketing automation." }
+  - { name: hubspotutk, category: marketing, provider: HubSpot, confidence: 0.9, description: "HubSpot: identifies the visitor and links form submissions." }
+  - { name: __hssc, category: marketing, provider: HubSpot, confidence: 0.9, description: "HubSpot: tracks sessions for marketing analytics." }
+  - { name: __hssrc, category: marketing, provider: HubSpot, confidence: 0.9, description: "HubSpot: detects new sessions for marketing analytics." }
+
+domains:
+  # Advertising and social networks
+  - { domain: doubleclick.net, category: marketing, provider: Google DoubleClick, confidence: 0.9 }
+  - { domain: googleadservices.com, category: marketing, provider: Google Ads, confidence: 0.9 }
+  - { domain: googlesyndication.com, category: marketing, provider: Google AdSense, confidence: 0.9 }
+  - { domain: youtube.com, category: marketing, provider: YouTube, confidence: 0.85 }
+  - { domain: facebook.com, category: marketing, provider: Meta (Facebook), confidence: 0.9 }
+  - { domain: facebook.net, category: marketing, provider: Meta (Facebook), confidence: 0.9 }
+  - { domain: instagram.com, category: marketing, provider: Meta (Instagram), confidence: 0.85 }
+  - { domain: linkedin.com, category: marketing, provider: LinkedIn, confidence: 0.85 }
+  - { domain: bing.com, category: marketing, provider: Microsoft Advertising, confidence: 0.85 }
+  - { domain: tiktok.com, category: marketing, provider: TikTok, confidence: 0.9 }
+  - { domain: twitter.com, category: marketing, provider: X (Twitter), confidence: 0.85 }
+  - { domain: x.com, category: marketing, provider: X (Twitter), confidence: 0.85 }
+  - { domain: ads-twitter.com, category: marketing, provider: X (Twitter), confidence: 0.9 }
+  - { domain: pinterest.com, category: marketing, provider: Pinterest, confidence: 0.85 }
+  - { domain: snapchat.com, category: marketing, provider: Snapchat, confidence: 0.85 }
+  - { domain: reddit.com, category: marketing, provider: Reddit, confidence: 0.85 }
+  - { domain: criteo.com, category: marketing, provider: Criteo, confidence: 0.95 }
+  - { domain: criteo.net, category: marketing, provider: Criteo, confidence: 0.95 }
+  - { domain: adnxs.com, category: marketing, provider: Xandr (AppNexus), confidence: 0.95 }
+  - { domain: adsrvr.org, category: marketing, provider: The Trade Desk, confidence: 0.95 }
+  - { domain: rubiconproject.com, category: marketing, provider: Magnite (Rubicon Project), confidence: 0.95 }
+  - { domain: pubmatic.com, category: marketing, provider: PubMatic, confidence: 0.95 }
+  - { domain: casalemedia.com, category: marketing, provider: Index Exchange, confidence: 0.95 }
+  - { domain: openx.net, category: marketing, provider: OpenX, confidence: 0.95 }
+  - { domain: amazon-adsystem.com, category: marketing, provider: Amazon Ads, confidence: 0.95 }
+  - { domain: taboola.com, category: marketing, provider: Taboola, confidence: 0.95 }
+  - { domain: outbrain.com, category: marketing, provider: Outbrain, confidence: 0.95 }
+  - { domain: demdex.net, category: marketing, provider: Adobe Audience Manager, confidence: 0.95 }
+  - { domain: everesttech.net, category: marketing, provider: Adobe Advertising, confidence: 0.95 }
+  - { domain: scorecardresearch.com, category: marketing, provider: Comscore, confidence: 0.9 }
+  - { domain: quantserve.com, category: marketing, provider: Quantcast, confidence: 0.95 }
+  - { domain: hubspot.com, category: marketing, provider: HubSpot, confidence: 0.85 }
+  # Analytics, monitoring and experimentation
+  - { domain: hotjar.com, category: performance, provider: Hotjar, confidence: 0.9 }
+  - { domain: clarity.ms, category: performance, provider: Microsoft Clarity, confidence: 0.9 }
+  - { domain: newrelic.com, category: performance, provider: New Relic, confidence: 0.9 }
+  - { domain: nr-data.net, category: performance, provider: New Relic, confidence: 0.9 }
+  - { domain: sentry.io, category: performance, provider: Sentry, confidence: 0.9 }
+  - { domain: datadoghq.com, category: performance, provider: Datadog, confidence: 0.9 }
+  - { domain: optimizely.com, category: performance, provider: Optimizely, confidence: 0.9 }
+  - { domain: visualwebsiteoptimizer.com, category: performance, provider: VWO, confidence: 0.9 }
+  - { domain: mouseflow.com, category: performance, provider: Mouseflow, confidence: 0.9 }
+  - { domain: fullstory.com, category: performance, provider: FullStory, confidence: 0.9 }
+  - { domain: mixpanel.com, category: performance, provider: Mixpanel, confidence: 0.9 }
+  # Functional third parties
+  - { domain: stripe.com, category: functionality, provider: Stripe, confidence: 0.85 }
+  - { domain: paypal.com, category: functionality, provider: PayPal, confidence: 0.85 }
+
+keywords:
+  - { pattern: "session|sess_?id", category: functionality, confidence: 0.82, description: "Likely keeps the user's session across page requests." }
+  - { pattern: "csrf|xsrf|antiforgery", category: functionality, confidence: 0.85, description: "Likely protects requests against cross-site request forgery." }
+  - { pattern: "consent|gdpr|cookie_?(notice|policy|banner)", category: functionality, confidence: 0.75, description: "Likely stores the user's cookie consent choices." }
+  - { pattern: "lang|locale|currency|country", category: functionality, confidence: 0.6, description: "Likely stores the user's language, region or currency preference." }
+  - { pattern: "cart|basket|wishlist", category: functionality, confidence: 0.6, description: "Likely stores shopping cart contents." }
+  - { pattern: "auth|login|token|remember_?me", category: functionality, confidence: 0.7, description: "Likely related to user authentication." }
+  - { pattern: "(^|[_-])(ab|experiment|variant|split)([_-]|$)", category: performance, confidence: 0.6, description: "Likely used for A/B testing or experiments." }
+  - { pattern: "analytic|metric|stats|tracking|visitor", category: performance, confidence: 0.6, description: "Likely used to measure site usage." }
+  - { pattern: "(^|[_-])(ads?|adid|gclid|fbclid|utm|campaign|affiliate|retarget)", category: marketing, confidence: 0.6, description: "Likely used for advertising or campaign attribution." }

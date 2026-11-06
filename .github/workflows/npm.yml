@@ -1,0 +1,67 @@
+# Publishes the consent banner to npm as `cookiejar-consent` when a tag
+# `consent-v<version>` is pushed. The tag must match consent/package.json and
+# the gem version; pre-releases (`1.2.0-rc.1`) are published under the `next`
+# dist-tag.
+#
+# Publishing uses npm trusted publishing (OIDC) with provenance: on npmjs.com,
+# add this repository and workflow (npm.yml) as the package's trusted publisher.
+# npm only allows that for an existing package, so the first release needs the
+# secret NPM_TOKEN (a granular token with publish rights), which can be deleted
+# once trusted publishing is set up.
+name: npm
+
+on:
+  push:
+    tags: ["consent-v*"]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Pack and check without publishing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: consent
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or later.
+      - run: npm install --global npm@11
+
+      - name: Check versions
+        run: |
+          package="$(node -p 'require("./package.json").version')"
+          gem="$(../.github/scripts/component-version consent)"
+          if [[ "$package" != "$gem" ]]; then
+            echo "::error::package.json has $package, the gem $gem"
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "consent-v$package" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match the package version $package"
+            exit 1
+          fi
+          echo "VERSION=$package" >> "$GITHUB_ENV"
+
+      - name: Check the script parses
+        run: node --check assets/cookiejar-consent.js
+
+      - run: npm pack --dry-run
+
+      - name: Publish
+        if: github.event_name == 'push' || !inputs.dry-run
+        run: npm publish --provenance --access public --tag "$([[ "$VERSION" == *-* ]] && echo next || echo latest)"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

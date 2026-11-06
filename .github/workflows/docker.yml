@@ -1,0 +1,160 @@
+# Builds the Docker images of the scanner, the consent banner builder and the
+# receiver for linux/amd64 and linux/arm64.
+#
+# - Pull requests: build only, to check the Dockerfiles.
+# - Pushes to main: push the `edge` tag of every image.
+# - Tags `<component>-v<version>` (e.g. `scanner-v1.2.0`): push that component's
+#   image as `1.2.0`, `1.2`, `1` and `latest`. The tag must match the
+#   component's version; pre-releases (`1.2.0-rc.1`) get only their own tag.
+#
+# Images go to Docker Hub as sarhanalaa/cookiejar-<component> (the variable
+# DOCKERHUB_NAMESPACE overrides the namespace), which needs the secrets
+# DOCKERHUB_USERNAME and DOCKERHUB_TOKEN (an access token with read/write scope)
+# in the `production` environment.
+# They are mirrored to ghcr.io/<owner>/cookiejar-<component>.
+name: Docker
+
+on:
+  push:
+    branches: [main]
+    tags: ["scanner-v*", "consent-v*", "receiver-v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      components: ${{ steps.plan.outputs.components }}
+      stable: ${{ steps.plan.outputs.stable }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: plan
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            component="${GITHUB_REF_NAME%%-v*}"
+            version="$(.github/scripts/component-version "$component")"
+            if [[ "$GITHUB_REF_NAME" != "$component-v$version" ]]; then
+              echo "::error::Tag $GITHUB_REF_NAME doesn't match the $component version $version"
+              exit 1
+            fi
+            echo "components=[\"$component\"]" >> "$GITHUB_OUTPUT"
+            [[ "$version" == *-* ]] && echo "stable=false" >> "$GITHUB_OUTPUT" || echo "stable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo 'components=["scanner","consent","receiver"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  image:
+    needs: plan
+    name: ${{ matrix.component }}
+    runs-on: ubuntu-latest
+    # Holds the Docker Hub secrets; pull requests only build, so they don't need it.
+    environment: ${{ github.event_name != 'pull_request' && 'production' || '' }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJSON(needs.plan.outputs.components) }}
+    env:
+      PUSH: ${{ github.event_name != 'pull_request' }}
+      # Artifact attestations need a public repository (or GitHub Enterprise Cloud).
+      ATTEST: ${{ github.event_name != 'pull_request' && github.event.repository.visibility == 'public' }}
+      RELEASE: ${{ startsWith(github.ref, 'refs/tags/') }}
+      DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || 'sarhanalaa' }}
+      DOCKERHUB_CONFIGURED: ${{ secrets.DOCKERHUB_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check Docker Hub credentials
+        if: env.RELEASE == 'true' && env.DOCKERHUB_CONFIGURED != 'true'
+        run: |
+          echo "::error::Releases are published to Docker Hub; set the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets"
+          exit 1
+
+      - id: target
+        run: |
+          echo "dockerhub=${{ env.PUSH == 'true' && env.DOCKERHUB_CONFIGURED == 'true' }}" >> "$GITHUB_OUTPUT"
+          echo "ghcr=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/cookiejar-${{ matrix.component }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: steps.target.outputs.dockerhub == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            name=${{ env.DOCKERHUB_NAMESPACE }}/cookiejar-${{ matrix.component }},enable=${{ steps.target.outputs.dockerhub }}
+            ${{ steps.target.outputs.ghcr }}
+          tags: |
+            type=edge,branch=main
+            type=match,pattern=^${{ matrix.component }}-v(\d+\.\d+\.\d+.*)$,group=1
+            type=match,pattern=^${{ matrix.component }}-v(\d+\.\d+)\.\d+$,group=1
+            type=match,pattern=^${{ matrix.component }}-v(\d+)\.\d+\.\d+$,group=1
+            type=raw,value=latest,enable=${{ needs.plan.outputs.stable == 'true' }}
+            type=ref,event=pr
+          labels: |
+            org.opencontainers.image.title=cookiejar-${{ matrix.component }}
+            org.opencontainers.image.licenses=MIT
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.component }}
+          platforms: ${{ env.PUSH == 'true' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+
+      - name: Attest build provenance (GHCR)
+        if: env.ATTEST == 'true'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ steps.target.outputs.ghcr }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest build provenance (Docker Hub)
+        if: steps.target.outputs.dockerhub == 'true' && env.ATTEST == 'true'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: index.docker.io/${{ env.DOCKERHUB_NAMESPACE }}/cookiejar-${{ matrix.component }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Update Docker Hub description
+        if: steps.target.outputs.dockerhub == 'true' && env.RELEASE == 'true'
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.DOCKERHUB_NAMESPACE }}/cookiejar-${{ matrix.component }}
+          short-description: ${{ github.event.repository.description }}
+          readme-filepath: ${{ matrix.component }}/README.md
+          enable-url-completion: true

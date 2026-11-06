@@ -1,0 +1,169 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Installs a Chrome for Testing build (Chromium, as published by the Chrome team
+# for automation) into vendor/chromium for the scanner to use.
+#
+# Environment:
+#   CHROME_FLAVOR   chrome-headless-shell (default; small, headless only) or chrome (can run with --no-headless)
+#   CHROME_CHANNEL  Stable (default), Beta, Dev or Canary
+#   CHROME_VERSION  exact version to install instead of the channel's latest, e.g. 131.0.6778.85
+
+require "fileutils"
+require "json"
+require "net/http"
+require "open3"
+require "rbconfig"
+require "tmpdir"
+require "uri"
+
+ROOT = File.expand_path("..", __dir__)
+INSTALL_DIR = File.join(ROOT, "vendor", "chromium")
+BROWSER_PATH_FILE = File.join(INSTALL_DIR, "browser-path")
+VERSIONS_URL = "https://googlechromelabs.github.io/chrome-for-testing"
+FLAVORS = %w[chrome-headless-shell chrome].freeze
+CHANNELS = %w[Stable Beta Dev Canary].freeze
+
+def fail!(message)
+  warn("install-chromium: #{message}")
+  exit(1)
+end
+
+def platform
+  os = RbConfig::CONFIG["host_os"]
+  cpu = RbConfig::CONFIG["host_cpu"]
+  arm = cpu.match?(/arm|aarch64/)
+  case os
+  when /darwin/ then arm ? "mac-arm64" : "mac-x64"
+  when /mswin|mingw|cygwin/ then cpu.match?(/64/) ? "win64" : "win32"
+  when /linux/
+    return "linux64" unless arm
+
+    fail!("Chrome for Testing has no Linux ARM build. Install your distribution's Chromium instead, " \
+          "e.g. `sudo apt install chromium`; cookiejar finds /usr/bin/chromium automatically.")
+  else fail!("unsupported OS: #{os} (#{cpu})")
+  end
+end
+
+def get(url, redirects: 5, &block)
+  uri = URI(url)
+  Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
+    http.request(Net::HTTP::Get.new(uri)) do |response|
+      case response
+      when Net::HTTPRedirection
+        fail!("too many redirects for #{url}") if redirects.zero?
+        return get(response["location"], redirects: redirects - 1, &block)
+      when Net::HTTPSuccess
+        return block ? block.call(response) : response.body
+      else
+        fail!("GET #{url} failed: #{response.code} #{response.message}")
+      end
+    end
+  end
+rescue SocketError, SystemCallError, Net::OpenTimeout, Net::ReadTimeout, OpenSSL::SSL::SSLError => e
+  fail!("GET #{url} failed: #{e.message}")
+end
+
+# @return [Array(String, String)] version and download URL
+def release(flavor, platform)
+  version = ENV.fetch("CHROME_VERSION", "").strip
+  entry =
+    if version.empty?
+      channel = ENV.fetch("CHROME_CHANNEL", "Stable").capitalize
+      fail!("CHROME_CHANNEL must be one of #{CHANNELS.join(", ")}") unless CHANNELS.include?(channel)
+      JSON.parse(get("#{VERSIONS_URL}/last-known-good-versions-with-downloads.json")).dig("channels", channel)
+    else
+      JSON.parse(get("#{VERSIONS_URL}/known-good-versions-with-downloads.json"))["versions"]
+          .find { |v| v["version"] == version } || fail!("unknown Chrome for Testing version #{version}")
+    end
+  download = Array(entry.dig("downloads", flavor)).find { |d| d["platform"] == platform }
+  fail!("no #{flavor} #{entry["version"]} download for #{platform}") unless download
+
+  [entry["version"], download["url"]]
+end
+
+def download(url, path)
+  get(url) do |response|
+    total = response["content-length"].to_i
+    progress = $stderr.tty? && total.positive?
+    done = 0
+    shown = nil
+    File.open(path, "wb") do |file|
+      response.read_body do |chunk|
+        file.write(chunk)
+        done += chunk.bytesize
+        next unless progress && shown != (percent = done * 100 / total)
+
+        shown = percent
+        $stderr.print(format("\r  %3d%% of %d MB", percent, total / 1_048_576))
+      end
+    end
+    $stderr.puts if progress
+  end
+end
+
+def extract(zip, dir)
+  # unzip keeps the executable bits; bsdtar (macOS, Windows 10+) reads zip files too.
+  unzip = system("unzip", "-v", out: File::NULL, err: File::NULL)
+  command = unzip ? ["unzip", "-q", zip, "-d", dir] : ["tar", "-xf", zip, "-C", dir]
+  system(*command) || fail!("extracting #{zip} failed (install unzip)")
+end
+
+def binary_in(dir, flavor, platform)
+  name = {
+    "chrome-headless-shell" => "chrome-headless-shell",
+    "chrome" => platform.start_with?("mac") ? "Google Chrome for Testing" : "chrome"
+  }.fetch(flavor)
+  name += ".exe" if platform.start_with?("win")
+  Dir.glob(File.join(dir, "**", name)).find { |path| File.file?(path) } || fail!("#{name} not found in #{dir}")
+end
+
+def verify(binary, platform)
+  output, status = Open3.capture2e(binary, "--headless", "--version")
+  return output.strip if status.success?
+
+  message = +"#{binary} does not start:\n#{output}"
+  if platform.start_with?("linux")
+    missing = Open3.capture2e("ldd", binary).first.lines.grep(/not found/).map { |l| l.split.first }
+    message << "\nMissing shared libraries: #{missing.join(" ")}" if missing.any?
+    message << "\nOn Debian/Ubuntu, `sudo apt install chromium` or `npx playwright install-deps chromium` " \
+               "installs the libraries Chromium needs."
+  end
+  fail!(message)
+rescue SystemCallError => e
+  fail!("#{binary} does not start: #{e.message}")
+end
+
+$stdout.sync = true
+flavor = ENV.fetch("CHROME_FLAVOR", "chrome-headless-shell")
+fail!("CHROME_FLAVOR must be one of #{FLAVORS.join(", ")}") unless FLAVORS.include?(flavor)
+platform = platform()
+version, url = release(flavor, platform)
+target = File.join(INSTALL_DIR, "#{flavor}-#{version}-#{platform}")
+
+if File.exist?(BROWSER_PATH_FILE) && File.read(BROWSER_PATH_FILE).strip.start_with?(target + File::SEPARATOR)
+  puts "#{flavor} #{version} is already installed: #{File.read(BROWSER_PATH_FILE).strip}"
+  exit
+end
+
+puts "Installing #{flavor} #{version} (#{platform})"
+Dir.mktmpdir do |tmp|
+  zip = File.join(tmp, "chromium.zip")
+  download(url, zip)
+  staging = File.join(tmp, "extracted")
+  FileUtils.mkdir_p(staging)
+  extract(zip, staging)
+  FileUtils.mkdir_p(INSTALL_DIR)
+  FileUtils.rm_rf(target)
+  FileUtils.mv(staging, target)
+end
+
+binary = binary_in(target, flavor, platform)
+puts verify(binary, platform)
+File.write(BROWSER_PATH_FILE, "#{binary}\n")
+# Remove earlier installs.
+Dir.glob(File.join(INSTALL_DIR, "*")).each do |path|
+  FileUtils.rm_rf(path) unless path == target || path == BROWSER_PATH_FILE
+end
+puts "Installed to #{binary}"
+puts "cookiejar now uses it by default (override with --browser-path or BROWSER_PATH)."

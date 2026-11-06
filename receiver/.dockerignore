@@ -1,0 +1,4 @@
+data/
+spec/
+.bundle/
+vendor/

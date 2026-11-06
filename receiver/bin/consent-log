@@ -1,0 +1,42 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Maintenance of the consent log files:
+#   bin/consent-log purge --older-than DAYS   delete the files of days that ended more than DAYS ago
+#   bin/consent-log export [--from TIME] [--to TIME] [--csv]   print records as JSON lines or CSV
+require "optparse"
+require_relative "../lib/consent_log"
+
+command = ARGV.shift
+options = {}
+parser = OptionParser.new do |o|
+  o.banner = "Usage: consent-log purge --older-than DAYS\n       consent-log export [--from TIME] [--to TIME] [--csv]"
+  o.on("--older-than DAYS", Integer, "Delete the files of days that ended more than DAYS ago") { |v| options[:days] = v }
+  o.on("--from TIME", "Export records received at or after TIME (ISO 8601)") { |v| options[:from] = Time.iso8601(v) }
+  o.on("--to TIME", "Export records received before TIME (ISO 8601)") { |v| options[:to] = Time.iso8601(v) }
+  o.on("--csv", "Export as CSV instead of JSON lines") { options[:csv] = true }
+end
+
+begin
+  parser.parse!(ARGV)
+  store = ConsentLog::Store.new(ConsentLog::Settings.data_dir)
+  case command
+  when "purge"
+    days = options[:days] or raise OptionParser::MissingArgument, "--older-than"
+    raise ConsentLog::Error, "--older-than must be positive" unless days.positive?
+
+    count = store.purge(before: Time.now - (days * 86_400))
+    warn "Deleted #{count} record(s) received more than #{days} days ago."
+  when "export"
+    puts CSV.generate_line(ConsentLog::Store::COLUMNS) if options[:csv]
+    store.each_between(from: options[:from], to: options[:to]) do |row|
+      puts(options[:csv] ? CSV.generate_line(row.values) : JSON.generate(row))
+    end
+  else
+    warn parser
+    exit 2
+  end
+rescue ConsentLog::Error, OptionParser::ParseError, ArgumentError => e
+  warn "consent-log: #{e.message}"
+  exit 2
+end

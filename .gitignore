@@ -1,0 +1,9 @@
+.DS_Store
+.idea/
+.vscode/
+.rspec_status
+/scanner/vendor/
+/scanner/cookie-report/
+/scanner/cookie-database/
+/cookie-report/
+/cookie-database/

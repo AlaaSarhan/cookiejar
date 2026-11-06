@@ -1,0 +1,12 @@
+.git/
+.bundle/
+.idea/
+.DS_Store
+.rspec_status
+vendor/
+pkg/
+cookie-report/
+cookie-database/
+spec/
+Dockerfile
+.dockerignore
