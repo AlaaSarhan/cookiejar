@@ -60,7 +60,7 @@ module Cookiejar
     def initialize(path)
       @exact = {}
       @prefixes = []
-      CSV.foreach(path, headers: true) do |row|
+      CSV.foreach(path, headers: true, liberal_parsing: true) do |row|
         entry = build_entry(row)
         next unless entry
 
