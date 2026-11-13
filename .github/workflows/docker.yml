@@ -31,7 +31,7 @@ jobs:
       components: ${{ steps.plan.outputs.components }}
       stable: ${{ steps.plan.outputs.stable }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - id: plan
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
@@ -70,7 +70,7 @@ jobs:
       DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || 'sarhanalaa' }}
       DOCKERHUB_CONFIGURED: ${{ secrets.DOCKERHUB_TOKEN != '' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Check Docker Hub credentials
         if: env.RELEASE == 'true' && env.DOCKERHUB_CONFIGURED != 'true'
