@@ -134,7 +134,7 @@ jobs:
 
       - name: Attest build provenance (GHCR)
         if: env.ATTEST == 'true'
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ steps.target.outputs.ghcr }}
           subject-digest: ${{ steps.build.outputs.digest }}
@@ -142,7 +142,7 @@ jobs:
 
       - name: Attest build provenance (Docker Hub)
         if: steps.target.outputs.dockerhub == 'true' && env.ATTEST == 'true'
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: index.docker.io/${{ env.DOCKERHUB_NAMESPACE }}/cookiejar-${{ matrix.component }}
           subject-digest: ${{ steps.build.outputs.digest }}
