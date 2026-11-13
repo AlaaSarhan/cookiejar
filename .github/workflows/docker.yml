@@ -83,7 +83,7 @@ jobs:
           echo "dockerhub=${{ env.PUSH == 'true' && env.DOCKERHUB_CONFIGURED == 'true' }}" >> "$GITHUB_OUTPUT"
           echo "ghcr=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/cookiejar-${{ matrix.component }}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
 
       - name: Log in to Docker Hub
