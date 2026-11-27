@@ -6,7 +6,7 @@ gemspec
 
 group :development, :test do
   # Drives a headless Chromium for the banner's browser specs.
-  gem "ferrum", "~> 0.17"
+  gem "ferrum", "~> 0.21"
   gem "rspec", "~> 3.13"
   gem "webrick", "~> 1.9"
 end
